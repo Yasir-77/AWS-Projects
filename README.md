@@ -30,10 +30,8 @@ Technologies and concepts covered across projects include:
 
 ### More services and advanced builds will be added over time.
 
-## 📂 Repository Structure
-/project-01-name
-/project-02-name
-/project-03-name
+## 📂 List of current projects:
+1- [VPC Networking Project](https://github.com/Yasir-77/AWS-Projects/tree/main/VPC-Netoworking-Setup)
 
 
 ## 📈 Purpose
