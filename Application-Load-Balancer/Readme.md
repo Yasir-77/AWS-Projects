@@ -253,6 +253,7 @@ Launch.
 
 #### Two EC2 instances are launched in separate Availability Zones to provide redundancy. They are placed in private subnets with no public IP addresses, enforcing backend isolation.
 Each instance uses user-data to install and start Apache and serve a simple HTML page identifying the instance.
+
 ---
 
 ### 9. CREATE TARGET GROUP
@@ -271,6 +272,7 @@ Register targets
 <img width="1691" height="869" alt="image" src="https://github.com/user-attachments/assets/85b79ee0-3d20-4730-92de-beb9a1e48eda" />
 
 #### A target group is created to define how the Application Load Balancer routes traffic to backend instances. It also performs health checks to ensure traffic is only sent to healthy EC2 instances.
+
 ---
 
 ### 10. CREATE THE APPLICATION LOAD BALANCER
@@ -324,7 +326,7 @@ The ALB DNS name is accessed in a browser to verify functionality. Refreshing th
 
 ---
 
-### BONUS 1 - Add a Route53 DNS name and point it to the ALB DNS name via ALIAS record type.
+### ⭐ BONUS 1 - Add a Route53 DNS name and point it to the ALB DNS name via ALIAS record type.
 
 #### 1.Create a Public Hosted Zone in Route 53
 
@@ -339,6 +341,8 @@ The ALB DNS name is accessed in a browser to verify functionality. Refreshing th
 
 <img width="1701" height="496" alt="image" src="https://github.com/user-attachments/assets/c12db874-42df-4bc0-a8af-1c475b18dfc5" />
 
+---
+
 ### 2.Update Name Servers in GoDaddy
 
 - Log in to GoDaddy
@@ -352,6 +356,7 @@ Note: DNS propagation can take a few minutes up to 48 hours (usually much faster
 
 <img width="1698" height="1164" alt="image" src="https://github.com/user-attachments/assets/22d1ac1f-367c-493b-9354-8adb0b4717a1" />
 
+---
 
 ### 3.Create the ALIAS Record in Route 53
 
@@ -368,7 +373,9 @@ Note: DNS propagation can take a few minutes up to 48 hours (usually much faster
 
 <img width="1690" height="697" alt="image" src="https://github.com/user-attachments/assets/2aa1e2c6-ce26-458a-8be8-edd3529bf07a" />
 
-### 4. Enable HTTPS with ACM and Attach Certificate to the ALB
+---
+
+### ⭐ BONUS 2- Enable HTTPS with ACM and Attach Certificate to the ALB
 
 Once the domain is successfully resolving to the Application Load Balancer via Route 53, HTTPS must be enabled using an SSL/TLS certificate that matches the domain name. This ensures encrypted communication and prevents browser security warnings.
 
@@ -411,7 +418,7 @@ After a short propagation period, HTTPS will be active and the domain can be acc
 <img width="1437" height="313" alt="image" src="https://github.com/user-attachments/assets/1f946dcd-2c7e-4a01-b674-905154d17ff0" />
 <img width="1645" height="519" alt="image" src="https://github.com/user-attachments/assets/15abf921-ce8c-4edf-bd24-7b44e131009b" />
 
-
+---
 
 ### 5.Test
 
@@ -432,11 +439,72 @@ This is the best-practice AWS solution. The custom domain now resolves securely 
 <img width="1694" height="204" alt="image" src="https://github.com/user-attachments/assets/d38a7624-21d7-4a68-b3b8-7ca41f325657" />
 
 
+## ⭐ Bonus 3 — Add an Auto Scaling Group Behind the ALB
 
+To improve scalability and availability, an Auto Scaling Group (ASG) is added behind the Application Load Balancer. This allows EC2 instances to be automatically created, replaced, or scaled based on demand, while the ALB continues to route traffic only to healthy instances.
 
+---
 
+### 1 - Create a Launch Template
 
+A launch template defines how new EC2 instances should be created by the Auto Scaling Group, ensuring all instances are configured consistently.
 
+- Go to **EC2 → Launch Templates → Create launch template**
+- Name: `lt-web`
+- AMI: **Amazon Linux 2**
+- Instance type: `t2.micro`
+- Key pair: select an existing key (optional if using SSM)
+- Network settings:
+   - Do not assign a public IP
+- Security group:
+   - Select `sg-ec2`
+- User data:
+   ```
+   #!/bin/bash
+   yum update -y
+   yum install -y httpd
+   systemctl enable httpd
+   systemctl start httpd
+   echo "<h1>Hello from Auto Scaling Web Server</h1>" > /var/www/html/index.html
+   ```
+- Create launch template
+
+<img width="1696" height="223" alt="image" src="https://github.com/user-attachments/assets/ba643ace-6a85-4b20-99cb-37cc8c093f1f" />
+ 
+---
+### 2 - Create the Auto Scaling Group
+
+The Auto Scaling Group manages the lifecycle of EC2 instances and integrates directly with the ALB target group.
+
+- Go to EC2 → Auto Scaling Groups → Create Auto Scaling group
+- Name: asg-web
+- Select launch template: lt-web
+- VPC: my-vpc
+- Subnets:
+  - private-subnet-a
+  - private-subnet-b
+- Attach to an existing load balancer:
+  - Select Target Group: tg-web
+- Health checks:
+  - Enable ELB health checks
+- Group size:
+  - Desired capacity: 2
+  - Minimum capacity: 2
+  - Maximum capacity: 4
+
+Create Auto Scaling Group
+
+<img width="1681" height="1190" alt="image" src="https://github.com/user-attachments/assets/0e5e328c-3cec-4c70-8f82-26c8c9cbe140" />
+
+ 
+### 3 - Validate Auto Scaling Integration
+
+- Go to EC2 → Target Groups → tg-web → Targets
+- Confirm that instances created by the Auto Scaling Group are registered and marked Healthy
+- Access the ALB DNS name or custom domain and refresh the page to verify traffic is served correctly
+
+<img width="1704" height="243" alt="image" src="https://github.com/user-attachments/assets/a9a93609-4ed1-4a5c-b375-d22b046553ba" />
+<img width="1700" height="971" alt="image" src="https://github.com/user-attachments/assets/5a55497b-0842-409a-aa52-ffc109fc149e" />
 
 
 
